@@ -1,14 +1,16 @@
 import { NextResponse } from 'next/server';
-import { validateImage, uploadImage } from '@/lib/blob';
+import { validateImageUpload, uploadImage } from '@/lib/blob';
+import { requireAdmin } from '@/lib/adminGuard';
 
-// Protected by middleware (matcher covers /api/admin/*).
 // Accepts a multipart form with a `file` field and returns { url }.
+// Restricted to authenticated, same-origin admin requests.
 export async function POST(request) {
+  const denied = await requireAdmin(request);
+  if (denied) return denied;
+
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    return NextResponse.json(
-      { error: 'Image storage is not configured (missing BLOB_READ_WRITE_TOKEN).' },
-      { status: 500 },
-    );
+    // Do not echo the variable value; just state that storage is unconfigured.
+    return NextResponse.json({ error: 'Image storage is not configured.' }, { status: 500 });
   }
 
   let form;
@@ -21,16 +23,16 @@ export async function POST(request) {
   const file = form.get('file');
   const prefix = form.get('prefix') === 'offers' ? 'offers' : 'menu';
 
-  const check = validateImage(file);
+  const check = await validateImageUpload(file);
   if (!check.ok) {
-    return NextResponse.json({ error: check.error }, { status: 400 });
+    return NextResponse.json({ error: check.error }, { status: check.status || 400 });
   }
 
   try {
-    const url = await uploadImage(file, prefix);
+    const url = await uploadImage(check.buffer, check.contentType, prefix);
     return NextResponse.json({ url });
   } catch (err) {
-    console.error('Upload failed:', err);
+    console.error('Upload failed:', err?.message || err);
     return NextResponse.json({ error: 'Upload failed. Please try again.' }, { status: 500 });
   }
 }
