@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import {
   getMenu,
   getMenuItem,
@@ -63,12 +64,14 @@ export async function POST(request) {
       if (existing.image_url && existing.image_url !== data.image_url) {
         await deleteBlobIfOwned(existing.image_url);
       }
+      revalidatePath('/');
       return NextResponse.json({ item: saved });
     }
 
     const all = await getMenu();
     const nextOrder = all.reduce((max, m) => Math.max(max, m.sort_order || 0), 0) + 1;
     const saved = await createMenuItem({ ...data, sort_order: nextOrder });
+    revalidatePath('/');
     return NextResponse.json({ item: saved });
   } catch (err) {
     console.error('Menu save failed:', err);
@@ -82,6 +85,7 @@ export async function DELETE(request) {
   try {
     const removed = await deleteMenuItem(id);
     if (removed?.image_url) await deleteBlobIfOwned(removed.image_url);
+    revalidatePath('/');
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('Menu delete failed:', err);
@@ -97,6 +101,7 @@ export async function PATCH(request) {
   }
   try {
     await reorderMenu(body.orderedIds);
+    revalidatePath('/');
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('Menu reorder failed:', err);

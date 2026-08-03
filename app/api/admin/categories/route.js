@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import {
   getCategories,
   createCategory,
@@ -18,6 +19,7 @@ export async function POST(request) {
     const all = await getCategories();
     const nextOrder = all.reduce((max, c) => Math.max(max, c.sort_order || 0), 0) + 1;
     const category = await createCategory({ name, sort_order: nextOrder });
+    revalidatePath('/');
     return NextResponse.json({ category });
   } catch (err) {
     // Unique-name violation surfaces as a 23505 Postgres error.
@@ -37,6 +39,7 @@ export async function PATCH(request) {
   try {
     if (Array.isArray(body.orderedIds)) {
       await reorderCategories(body.orderedIds);
+      revalidatePath('/');
       return NextResponse.json({ ok: true });
     }
     const name = String(body.name || '').trim();
@@ -44,6 +47,7 @@ export async function PATCH(request) {
       return NextResponse.json({ error: 'Category id and name are required.' }, { status: 400 });
     }
     const category = await updateCategory(body.id, { name });
+    revalidatePath('/');
     return NextResponse.json({ category });
   } catch (err) {
     if (String(err?.code) === '23505') {
@@ -60,6 +64,7 @@ export async function DELETE(request) {
   try {
     await deleteCategory(id);
     // Items in this category become uncategorized (category_id -> NULL).
+    revalidatePath('/');
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('Category delete failed:', err);

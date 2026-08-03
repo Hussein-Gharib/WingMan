@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { updateSettings } from '@/lib/queries';
 
 // Update site settings (contact info + WhatsApp number/message).
@@ -21,6 +22,7 @@ export async function PUT(request) {
 
   try {
     const settings = await updateSettings(data);
+    revalidatePath('/');
     return NextResponse.json({ settings });
   } catch (err) {
     console.error('Settings update failed:', err);

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import {
   getOffers,
   getOffer,
@@ -40,6 +41,7 @@ export async function POST(request) {
       sort_order: nextOrder,
       active: true,
     });
+    revalidatePath('/');
     return NextResponse.json({ offer });
   } catch (err) {
     console.error('Offer create failed:', err);
@@ -55,6 +57,7 @@ export async function PATCH(request) {
   try {
     if (Array.isArray(body.orderedIds)) {
       await reorderOffers(body.orderedIds);
+      revalidatePath('/');
       return NextResponse.json({ ok: true });
     }
 
@@ -62,6 +65,7 @@ export async function PATCH(request) {
 
     if (typeof body.active === 'boolean') {
       const offer = await setOfferActive(body.id, body.active);
+      revalidatePath('/');
       return NextResponse.json({ offer });
     }
 
@@ -71,6 +75,7 @@ export async function PATCH(request) {
       if (existing?.image_url && existing.image_url !== body.image_url) {
         await deleteBlobIfOwned(existing.image_url);
       }
+      revalidatePath('/');
       return NextResponse.json({ offer });
     }
 
@@ -85,6 +90,7 @@ export async function PATCH(request) {
       price_usd: usd.value,
       price_lbp: lbp.value,
     });
+    revalidatePath('/');
     return NextResponse.json({ offer });
   } catch (err) {
     console.error('Offer update failed:', err);
@@ -98,6 +104,7 @@ export async function DELETE(request) {
   try {
     const removed = await deleteOffer(id);
     if (removed?.image_url) await deleteBlobIfOwned(removed.image_url);
+    revalidatePath('/');
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('Offer delete failed:', err);
