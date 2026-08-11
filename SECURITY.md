@@ -59,8 +59,9 @@ serverless instances), so also add an edge-level limit:
 
 ## Dependency audit status
 
-`npm audit` reports 11 advisories, all transitive and all fixable **only** via
-breaking major upgrades, which were intentionally **not** auto-applied:
+`npm audit` reports 12 advisories (5 moderate, 7 high), all transitive and all
+fixable **only** via breaking major upgrades, which were intentionally **not**
+auto-applied:
 
 - **Next.js** (`14.2.35`, already the newest `14.2.x`): fix requires `next@16`
   (major). The flagged issues are SSRF-via-rewrites (this app defines **no**
